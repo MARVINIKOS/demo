@@ -1,45 +1,55 @@
-import { Request, Response } from "express";
-import { User } from "../models/User";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
-
-dotenv.config();
-
-const SECRET_KEY = process.env.JWT_SECRET || "secret_key";
-
-//📌 1️⃣ NEW USER  SIGNUP 
+import { Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
+import { User } from '../models/User'; // ✅ adjust if your path is different!
 
 export const signup = async (req: Request, res: Response): Promise<void> => {
-  // Fill in the code
-};
-  
+  try {
+    const { name, email, password, termsAccepted } = req.body;
 
-// 📌 2️⃣ Login 
-export const login = async (req: Request, res: Response): Promise<void> => {
-    try {
-      const { email, password } = req.body;
-  
-      // Search new user
-      const user = await User.findOne({ where: { email } });
-      if (!user) {
-        res.status(401).json({ error: "Invalid credentials" });
-        return;
-      }
-  
-      // Check password
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-      if (!isPasswordValid) {
-        res.status(401).json({ error: "Invalid credentials" });
-        return;
-      }
-  
-      // ✅ Create JWT
-      const token = jwt.sign({ id: user.id }, "your_secret_key", { expiresIn: "1h" });
-  
-      res.json({ message: "Login successful!", token });
-    } catch (error) {
-      res.status(500).json({ error: "Error logging in" });
+    // 1️⃣ Validate input
+    if (!name || !email || !password || termsAccepted !== true) {
+      res.status(400).json({
+        message: "Name, email, password, and accepting terms are required."
+      });
+      return;
     }
-  };
-  
+
+    // 2️⃣ Check for duplicate email
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      res.status(400).json({ message: "Email already registered." });
+      return;
+    }
+
+    // 3️⃣ Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 4️⃣ Create user
+    const newUser = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      termsAccepted: true,
+    });
+
+    // 5️⃣ Respond without password
+    res.status(201).json({
+      message: "User registered successfully",
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        createdAt: newUser.createdAt
+      }
+    });
+
+  } catch (error) {
+    console.error("Signup error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// OPTIONAL: If you need a placeholder login to prevent errors
+export const login = (req: Request, res: Response): void => {
+  res.status(200).json({ message: "Login not implemented yet." });
+};

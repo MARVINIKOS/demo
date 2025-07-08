@@ -5,10 +5,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export const sequelize = new Sequelize({
-  database: "real_estate_db", 
-  username: "postgres",       
-  password: "1572001",  
-  host: "127.0.0.1",
-  dialect: "postgres",
+  dialect: "sqlite",
+  storage: "./dev.sqlite", // 📌 This file will be created automatically!
   models: [User],
 });
